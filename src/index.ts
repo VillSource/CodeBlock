@@ -6,7 +6,7 @@
 /**
  * Import icons
  */
-import { IconStar } from '@codexteam/icons';
+import { IconStar, IconTable, IconTableWithHeadings  } from '@codexteam/icons';
 
 /**
  * Import types
@@ -206,8 +206,8 @@ export default class CodeBlock implements BlockTool {
    */
   static get toolbox() {
     return {
-      title: 'tool',
-      icon: IconStar,
+      title: 'CodeBlock',
+      icon: IconTableWithHeadings,
     };
   }
 
