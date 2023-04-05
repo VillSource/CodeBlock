@@ -1,0 +1,1 @@
+import loader, { Monaco } from '@monaco-editor/loader';

@@ -1,0 +1,84 @@
+<html>
+<head>
+  <title>Editor.js example page</title>
+  <script src="node_modules\@editorjs\editorjs\dist\editor.js"></script>
+  <script src="dist\tmptool.umd.js"></script>
+
+  <style>
+    body {
+      font-family: system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    }
+  </style>
+</head>
+<body>
+  <div id="editorjs"></div>
+
+  <button id="save-button">Save</button>
+  <pre id="output"></pre>
+
+  <script >
+    // import tmptool from './src/index.ts';
+
+    const editor = new EditorJS({
+      tools: {
+        tmptool: {
+          class: tmptool.tmptool,
+          config: {
+            onRun: code => {
+              console.log("OnRun");
+              console.log(code);
+            }
+          },
+        }
+      },
+
+      data: {
+        blocks: [
+          {
+            type: "paragraph",
+            data:{
+              text:"HI"
+            } 
+          },
+          ,
+          {
+            type: 'tmptool',
+            data: {
+              title:"express",
+              language:'javascript',
+              code:`
+const express = require('express')
+const app = express()
+const port = 3000
+
+app.get('/', (req, res) => {
+  res.send('Hello World!')
+})
+
+app.listen(port, () => {
+  console.log(\`Example app listening on port \${port}\`)
+})              
+              `
+            },
+          },
+          {
+            type: 'tmptool',
+            data:{title:"long txt",language:'text',code: 'a\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\n'}
+          }
+        ],
+      },
+    });
+
+    const saveButton = document.getElementById('save-button');
+    const output = document.getElementById('output');
+
+    saveButton.addEventListener('click', () => {
+      editor.save().then( savedData => {
+        // output.innerHTML = JSON.stringify(savedData, null, 4);
+        console.log(savedData);
+      })
+    })
+  </script>
+</body>
+</html>
+

@@ -1,23 +1,26 @@
 /**
  * Import styles library
  */
-// import styles from './index.module.css';
+import styles from './index.module.css';
 
 /**
  * Import icons
  */
-import { IconStar, IconTable, IconTableWithHeadings  } from '@codexteam/icons';
+import { IconStar } from '@codexteam/icons';
+
 
 /**
  * Import types
  */
-import { toolData, toolConfig } from './types';
-import { API, BlockAPI, BlockTool } from '@editorjs/editorjs';
+import { tmptoolData, tmptoolConfig } from './types';
+export * from './types';
+import { API, BlockAPI, BlockTool, BlockToolData } from '@editorjs/editorjs';
+
 
 /**
- * tool Tool for Editor.js
+ * tmptool Tool for Editor.js
  */
-export default class CodeBlock implements BlockTool {
+export class tmptool implements BlockTool {
   /**
    * Code API — public methods to work with Editor
    * 
@@ -40,12 +43,12 @@ export default class CodeBlock implements BlockTool {
   /**
    * Tool data for input and output
    */
-  private data: toolData;
+  private data: tmptoolData;
 
   /**
    * Configuration object that passed through the initial Editor configuration.
    */
-  private config: toolConfig;
+  private config?: tmptoolConfig;
 
   /**
    * Tool's HTML nodes
@@ -57,7 +60,7 @@ export default class CodeBlock implements BlockTool {
    * 
    * @link https://editorjs.io/tools-api#class-constructor
    */
-  constructor({ data, config, api, block, readOnly }: { data: toolData, config: toolConfig, api: API, block: BlockAPI, readOnly: boolean }) {
+  constructor( { data, config, api, block, readOnly } : { data: tmptoolData, config?: tmptoolConfig, api: API, block: BlockAPI, readOnly: boolean }) {
     this.data = data;
     this.config = config;
     this.api = api;
@@ -69,7 +72,8 @@ export default class CodeBlock implements BlockTool {
      */
     this.nodes = {
       wrapper: null,
-      editor: null,
+      monaco: null,
+      cs: null
     };
   }
 
@@ -87,10 +91,15 @@ export default class CodeBlock implements BlockTool {
    * @returns {HTMLElement}
    */
   render() {
-    this.nodes.wrapper = this.createContainer();
-    // this.nodes.wrapper.classList.add(styles['tool-tool']);
+    // this.nodes["wrapper"] = document.createElement('div');
+    // this.nodes["wrapper"].classList.add(styles['tmptool-tool']);
+    // let p = document.createElement('p');
+    // p.classList.add(styles['p']);
+    // p.innerText = "hello world";
+    // this.nodes["wrapper"].appendChild(p)
+    this.createBlock();
 
-    return this.nodes.wrapper;
+    return this.nodes.wrapper!;
   }
 
   /**
@@ -98,22 +107,24 @@ export default class CodeBlock implements BlockTool {
    * Required
    * @link https://editorjs.io/tools-api#save
    * 
-   * @returns {toolData} saved data
+   * @returns {tmptoolData} saved data
    */
-  save(): toolData {
-    return {
-      code : this.GetCodeContents()
-    };
+  save(): tmptoolData {
+    this.data.code = this.getCode();
+    return this.data;
   }
 
   /**
    * Validates Block data after saving
    * @link https://editorjs.io/tools-api#validate
    * 
-   * @param {toolData} savedData
+   * @param {tmptoolData} savedData
    * @returns {boolean} true if data is valid, otherwise false
    */
-  // validate() {}
+  // validate(saveedData:tmptoolData): boolean {
+  //   console.log(saveedData);    
+  //   return false;
+  // }
 
   /**
    * 
@@ -131,10 +142,7 @@ export default class CodeBlock implements BlockTool {
    * 
    * @returns {void}
    */
-  destroy() {
-    console.log("destroy");
-    // this.monacoLoader.cancel()    
-  }
+  // destroy() {}
 
   /**
    * Handle content pasted by ways that described by pasteConfig static getter
@@ -149,8 +157,8 @@ export default class CodeBlock implements BlockTool {
    * Specifies how to merge two similar Blocks
    * @link https://editorjs.io/tools-api#merge
    * 
-   * @param {toolData} data - data of second Block
-   * @returns {toolData} - merged data
+   * @param {tmptoolData} data - data of second Block
+   * @returns {tmptoolData} - merged data
    */
   // merge() {} 
 
@@ -206,8 +214,8 @@ export default class CodeBlock implements BlockTool {
    */
   static get toolbox() {
     return {
-      title: 'CodeBlock',
-      icon: IconTableWithHeadings,
+      title: 'tmptool',
+      icon: IconStar,
     };
   }
 
@@ -279,7 +287,7 @@ export default class CodeBlock implements BlockTool {
    * Called after Block contents is added to the page
    */
   rendered() {
-    this.createMonaco()
+    this.renderMonaco();
   }
 
   /**
@@ -301,32 +309,118 @@ export default class CodeBlock implements BlockTool {
 
 
 
+  
+  private createBlock(){
+    let block = new TagBuilder('div')
+      .classes(styles['tmptool-tool'])
+      .build();
+
+    let header = new TagBuilder('div')
+      .classes(styles['header'])
+      .build();
+
+    let title = new TagBuilder('span')
+      .innerText(this.data.title)
+      .classes(styles['header-title'])
+      .build();
+
+    let language = new TagBuilder('span')
+      .innerHTML(
+        ` | ${this.data.language}`
+      )
+// `<select name="language" id="language">
+//   <option value="javascript">JavaScript</option>
+//   <option value="python">Python</option>
+//   <option value="c++">C++</option>
+//   <option value="java">Java</option>
+//   <option value="text">text</option>
+// </select>`)
+      .build()
+
+    let runbtn = new TagBuilder('button')
+      .innerText('run')
+      .classes(styles['header-runbtn'])
+      .build();
+    runbtn.addEventListener('click',()=>{
+      if(this.config?.onRun !== undefined){
+        this.nodes.monaco?.remove();
+        this.nodes.cs!.style.display = 'block';
+        this.config.onRun(this.save());
+        this.config.printOutput(this.writeConsole);
+      }
+    })
+        
+
+    let monaco = new TagBuilder('div')
+      .classes(styles['monaco-editor'])
+      .build();
+    monaco.style.height = `${this.data.code.split('\n').length}em`;
+
+    let cs = new TagBuilder('div').style({display:'none'}).build();
+    cs.style.paddingLeft = '20px';
+    let input = new InputBuilder('text').build();
+    let send = new TagBuilder('button').innerText("send input").build();
+    send.addEventListener('click',()=>{
+      try{
+        this.config?.onInput(input.value);
+        this.writeConsole(`> ${input.value}`);
+      }catch(e){}
+    })
+
+    cs.appendChild(input);
+    cs.appendChild(send);
+
+    header.appendChild(title);
+    header.appendChild(language);
+    header.appendChild(runbtn);
+
+    block.appendChild(header);
+    block.appendChild(monaco)
+    block.appendChild(cs)
 
 
-  // My Factory
-  private declare GetCodeContents: () => string; 
-
-  createContainer() {
-    let block = document.createElement('div');
-    let editor = document.createElement('div');
-
-    editor.style.height = "300px"
-
-    block.appendChild(editor);
-
-    this.nodes.editor = editor;
-    return block
+    this.nodes["wrapper"] = block;
+    this.nodes["monaco"] = monaco;
+    this.nodes["cs"] = cs;
+    this.nodes["input"] = input;
+    return this.nodes;
   }
 
-  createMonaco() {
-    loader.init().then(monaco => {
-      let monacoEditor = monaco.editor.create(this.nodes.editor!, {
+  private monacoEditor:any;
+  private declare getCode : () => string;
+
+  private async renderMonaco(){
+    let Monaco = await loader.init();
+    this.monacoEditor = Monaco.editor.create(this.nodes.monaco!, {
         value: this.data ? this.data.code : "function hello() {\n\talert('Hello world!');\n}",
-        language: 'javascript'
+        language: this.data.language,
+        scrollBeyondLastLine: false,
+        wordWrap: 'off',
+        wrappingStrategy: 'advanced',
+        minimap: {
+            enabled: false
+        },
+        overviewRulerLanes: 0,
       });
-      this.GetCodeContents = ()=> monacoEditor.getValue();
-    });
+
+    this.getCode = () => this.monacoEditor.getValue();
+
   }
+
+  writeConsole = (line:string) =>{
+    let p = new TagBuilder("pre").build();
+    p.textContent = line;
+    this.nodes.cs!.insertBefore( p, this.nodes.input! );
+
+  }
+
 };
 
+
 import loader, { Monaco } from '@monaco-editor/loader';
+import {TagBuilder, InputBuilder, SpanBuilder} from "html-tag-builder"
+
+
+
+
+
